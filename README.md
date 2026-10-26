@@ -18,7 +18,7 @@
   блокировки, при погашенном экране и при выходе из программы.
 - Живёт в трее, ставится без прав администратора, автозапуск с Windows по желанию.
 
-<img src="docs/ambient.png" alt="Настройки: мягкий режим" width="560">
+<img src="docs/screenshot.png" alt="Окно настроек на MSI Claw" width="640">
 
 <img src="docs/joycon.png" alt="Один цвет: как Joy-Con" width="560"> <img src="docs/picker.png" alt="Пикер цвета" width="200">
 
