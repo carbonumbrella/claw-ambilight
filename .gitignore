@@ -1,0 +1,9 @@
+# build output
+src/bin/
+src/obj/
+publish/
+.vs/
+*.user
+# local
+*.log
+CREDENTIALS.md

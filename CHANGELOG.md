@@ -1,0 +1,18 @@
+# CHANGELOG
+
+## 1.1.3 (2026-10-27) - first public release
+
+- Screen-reactive backlight for the MSI Claw stick rings and ABXY. Replaces a Python prototype
+  that used 31% of a core (GDI full-screen copy per frame): DXGI Desktop Duplication with the
+  downscale done on the GPU (GenerateMips, ~60x37 readback), about 1.5% of one core, idle on a
+  static screen, works in fullscreen games.
+- Modes: Мягкий (chroma-weighted ambient + saturation boost), Яркий (most saturated accent),
+  Один цвет with separate left / right+ABXY colors, a full HSV color picker and a Joy-Con preset
+  (#0AB9E6 / #FF3C28).
+- Brightness follows the display backlight (slider = cap) or is manual. On-battery policy:
+  normal / eco (10 FPS) / off. LEDs go dark on lock, display off and exit.
+- WPF settings window (theme follows Windows, two columns so it fits 175% scaling on 1920x1200),
+  tray icon, autostart, settings.json watched live for scripts and voice control.
+- Inno Setup per-user installer; framework-dependent exe (1.8 MB) with an automatic .NET 10
+  Desktop Runtime download only when it is missing (self-contained would be 70 MB).
+- Do not set InvariantGlobalization: WPF TextBox measuring throws CultureNotFoundException.
