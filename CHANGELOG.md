@@ -1,7 +1,9 @@
 # CHANGELOG
 
-## 1.1.3 (2026-10-27) - first public release
+## 0.9.0 (2026-10-27) - first public release (beta)
 
+- Published as 0.9.0 pre-release, not 1.x: so far tested on one Claw 8 AI+ (controller firmware
+  2.30+) only; portrait rotation and the runtime download path of the installer are untested.
 - Screen-reactive backlight for the MSI Claw stick rings and ABXY. Replaces a Python prototype
   that used 31% of a core (GDI full-screen copy per frame): DXGI Desktop Duplication with the
   downscale done on the GPU (GenerateMips, ~60x37 readback), about 1.5% of one core, idle on a
