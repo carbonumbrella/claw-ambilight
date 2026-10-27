@@ -1,10 +1,12 @@
 # CHANGELOG
 
-## Unreleased - taskbar cut by the work area, whole screen in fullscreen
+## 0.9.2 (2026-10-27) - taskbar cut, whole screen in fullscreen, edge weighting
 
 - `ScreenArea`: while the foreground window covers the primary monitor (games, fullscreen video, F11) the
   whole screen feeds the LEDs; otherwise only the work area, so the taskbar is cut on whatever side it
   docks (auto-hide = nothing cut). Re-read every 0.5 s, changes are logged ("screen area: ...").
+- Edge weighting like a TV ambilight: rows near the outer screen edge (top for the upper LEDs, bottom for
+  the lower ones) count up to 4x more than rows at the middle line, in both screen modes.
 
 ## 0.9.1 (2026-10-27) - "Яркий" mode reworked, whole screen captured
 
