@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased - "Яркий" (vibrant) mode reworked
+
+- Old vibrant (ported from the Python version) weighted pixels by chroma^2.5: one small HUD icon recolored a
+  whole quadrant, colors kept the screen's dim brightness, gray scenes flipped to the mean at a hard
+  threshold, and the saturation slider was ignored.
+- New: dominant hue (24 chroma-weighted hue bins, best bin + neighbors), lifted to near full LED brightness
+  (0.45..1 by the zone's brightness), saturation slider applied, smooth blend toward neutral when under 25%
+  of the pixels are colored.
+
 ## 0.9.0 (2026-10-27) - first public release (beta)
 
 - Published as 0.9.0 pre-release, not 1.x: so far tested on one Claw 8 AI+ (controller firmware
