@@ -84,7 +84,7 @@ namespace ClawAmbilight
                     try
                     {
                         float[]? grid = cap.Next(Math.Max(5, 1000 / fps));
-                        if (grid != null) targets = ColorEngine.Targets(grid, cap.Width, cap.Height, s.Mode, s.Saturation);
+                        if (grid != null) targets = ColorEngine.Targets(grid, cap.Width, cap.Height, s.Mode, s.Saturation, ScreenArea.Crop());
                         Status = battery && s.OnBattery == BatteryPolicy.Eco ? "Экономно на батарее" : "";
                     }
                     catch (Exception e)

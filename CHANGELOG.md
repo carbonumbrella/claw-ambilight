@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Unreleased - taskbar cut by the work area, whole screen in fullscreen
+
+- `ScreenArea`: while the foreground window covers the primary monitor (games, fullscreen video, F11) the
+  whole screen feeds the LEDs; otherwise only the work area, so the taskbar is cut on whatever side it
+  docks (auto-hide = nothing cut). Re-read every 0.5 s, changes are logged ("screen area: ...").
+
 ## 0.9.1 (2026-10-27) - "Яркий" mode reworked, whole screen captured
 
 - Old vibrant (ported from the Python version) weighted pixels by chroma^2.5: one small HUD icon recolored a

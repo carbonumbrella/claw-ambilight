@@ -3,20 +3,24 @@ using System;
 namespace ClawAmbilight
 {
     /// <summary>Screen grid -> 9 LED colors. Algorithms ported 1:1 from claw_ambilight.py.
-    /// Zones: the whole screen (the old bottom-30% cut left the LEDs dark for content at the bottom);
+    /// Zones: the crop from ScreenArea (whole screen in fullscreen, else without the taskbar);
     /// each screen half is split into 4 quadrants mapped to the matching stick-ring quadrant.
     /// LEDs 0..3 right stick (SW, SE, NE, NW), 4..7 left stick (NE, NW, SW, SE), 8 = ABXY (right NE).</summary>
     public static class ColorEngine
     {
-        public static float[] Targets(float[] grid, int w, int h, LightMode mode, double sat)
+        public static float[] Targets(float[] grid, int w, int h, LightMode mode, double sat,
+                                      (double X0, double Y0, double X1, double Y1) crop)
         {
-            int y0 = 0, y2 = h, y1 = h / 2;
-            int x1 = w / 4, x2 = w / 2, x3 = 3 * w / 4;
+            // crop: ScreenArea (whole screen in fullscreen, else the work area without the taskbar)
+            int xs = Math.Clamp((int)Math.Round(crop.X0 * w), 0, w - 4), xe = Math.Clamp((int)Math.Round(crop.X1 * w), xs + 4, w);
+            int y0 = Math.Clamp((int)Math.Round(crop.Y0 * h), 0, h - 2), y2 = Math.Clamp((int)Math.Round(crop.Y1 * h), y0 + 2, h);
+            int y1 = (y0 + y2) / 2;
+            int x1 = xs + (xe - xs) / 4, x2 = xs + (xe - xs) / 2, x3 = xs + 3 * (xe - xs) / 4, w0 = xe;
             float[] Q(int xa, int xb, int ya, int yb) => mode == LightMode.Vibrant
                 ? Vibrant(grid, w, xa, xb, ya, yb, sat) : Ambient(grid, w, xa, xb, ya, yb, sat);
 
-            var lTL = Q(0, x1, y0, y1); var lTR = Q(x1, x2, y0, y1); var lBL = Q(0, x1, y1, y2); var lBR = Q(x1, x2, y1, y2);
-            var rTL = Q(x2, x3, y0, y1); var rTR = Q(x3, w, y0, y1); var rBL = Q(x2, x3, y1, y2); var rBR = Q(x3, w, y1, y2);
+            var lTL = Q(xs, x1, y0, y1); var lTR = Q(x1, x2, y0, y1); var lBL = Q(xs, x1, y1, y2); var lBR = Q(x1, x2, y1, y2);
+            var rTL = Q(x2, x3, y0, y1); var rTR = Q(x3, w0, y0, y1); var rBL = Q(x2, x3, y1, y2); var rBR = Q(x3, w0, y1, y2);
             var leds = new[] { rBL, rBR, rTR, rTL, lTR, lTL, lBL, lBR, rTR };
             var t = new float[27];
             for (int i = 0; i < 9; i++) Array.Copy(leds[i], 0, t, i * 3, 3);
