@@ -17,7 +17,7 @@ namespace ClawAmbilight
             int y1 = (y0 + y2) / 2;
             int x1 = xs + (xe - xs) / 4, x2 = xs + (xe - xs) / 2, x3 = xs + 3 * (xe - xs) / 4, w0 = xe;
             float[] Q(int xa, int xb, int ya, int yb) => mode == LightMode.Vibrant
-                ? Vibrant(grid, w, xa, xb, ya, yb, sat) : Ambient(grid, w, xa, xb, ya, yb, sat);
+                ? Vibrant(grid, w, xa, xb, ya, yb, sat, ya == y0) : Ambient(grid, w, xa, xb, ya, yb, sat, ya == y0);
 
             var lTL = Q(xs, x1, y0, y1); var lTR = Q(x1, x2, y0, y1); var lBL = Q(xs, x1, y1, y2); var lBR = Q(x1, x2, y1, y2);
             var rTL = Q(x2, x3, y0, y1); var rTR = Q(x3, w0, y0, y1); var rBL = Q(x2, x3, y1, y2); var rBR = Q(x3, w0, y1, y2);
@@ -29,7 +29,15 @@ namespace ClawAmbilight
 
         /// <summary>'ambient': soft chroma weighting (w = 1 + (chroma/32)^1.2) and saturation expanded
         /// around Rec.601 luminance. Calm, colored elements still shine through gray backgrounds.</summary>
-        static float[] Ambient(float[] g, int w, int xa, int xb, int ya, int yb, double sat)
+        /// <summary>Like a TV ambilight, rows near the screen's outer edge (top for the upper LEDs, bottom
+        /// for the lower ones) count up to 4x more than rows at the screen's middle line.</summary>
+        static double Edge(int y, int ya, int yb, bool top)
+        {
+            double d = top ? (y - ya + 0.5) / (yb - ya) : (yb - y - 0.5) / (yb - ya);
+            return 1.0 + 3.0 * (1 - d) * (1 - d);
+        }
+
+        static float[] Ambient(float[] g, int w, int xa, int xb, int ya, int yb, double sat, bool top)
         {
             double sw = 0, r = 0, gg = 0, b = 0, maxC = 0;
             for (int y = ya; y < yb; y++)
@@ -39,7 +47,7 @@ namespace ClawAmbilight
                     double pr = g[o], pg = g[o + 1], pb = g[o + 2];
                     double hi = Math.Max(pr, Math.Max(pg, pb)), lo = Math.Min(pr, Math.Min(pg, pb));
                     maxC = Math.Max(maxC, hi);
-                    double wt = 1.0 + Math.Pow((hi - lo) / 32.0, 1.2);
+                    double wt = (1.0 + Math.Pow((hi - lo) / 32.0, 1.2)) * Edge(y, ya, yb, top);
                     sw += wt; r += pr * wt; gg += pg * wt; b += pb * wt;
                 }
             if (sw == 0 || maxC < 4) return new float[3];
@@ -52,11 +60,11 @@ namespace ClawAmbilight
         /// Colored pixels (chroma >= 16) vote into 24 hue bins weighted by chroma; the best bin plus its
         /// neighbors gives the color, lifted to near full LED brightness (dark scenes stay a bit dimmer)
         /// and saturated by the slider. Gray scenes blend smoothly toward a neutral tone (no threshold).</summary>
-        static float[] Vibrant(float[] g, int w, int xa, int xb, int ya, int yb, double sat)
+        static float[] Vibrant(float[] g, int w, int xa, int xb, int ya, int yb, double sat, bool top)
         {
             const int Bins = 24;
             Span<double> bw = stackalloc double[Bins], br = stackalloc double[Bins], bg = stackalloc double[Bins], bb = stackalloc double[Bins];
-            double mr = 0, mg = 0, mb = 0, sumHi = 0; int n = 0, colored = 0;
+            double mr = 0, mg = 0, mb = 0, sumHi = 0, n = 0, colored = 0;  // edge-weighted sums
             for (int y = ya; y < yb; y++)
                 for (int x = xa; x < xb; x++)
                 {
@@ -64,12 +72,14 @@ namespace ClawAmbilight
                     double pr = g[o], pg = g[o + 1], pb = g[o + 2];
                     double hi = Math.Max(pr, Math.Max(pg, pb)), lo = Math.Min(pr, Math.Min(pg, pb)), c = hi - lo;
                     if (hi <= 15) continue;
-                    n++; mr += pr; mg += pg; mb += pb; sumHi += hi;
+                    double e = Edge(y, ya, yb, top);
+                    n += e; mr += pr * e; mg += pg * e; mb += pb * e; sumHi += hi * e;
                     if (c < 16) continue;
-                    colored++;
+                    colored += e;
                     double hue = hi == pr ? (pg - pb) / c : hi == pg ? 2 + (pb - pr) / c : 4 + (pr - pg) / c; // 0..6
                     int bin = ((int)Math.Floor((hue + 6) % 6 / 6 * Bins)) % Bins;
-                    bw[bin] += c; br[bin] += pr * c; bg[bin] += pg * c; bb[bin] += pb * c;
+                    double ce = c * e;
+                    bw[bin] += ce; br[bin] += pr * ce; bg[bin] += pg * ce; bb[bin] += pb * ce;
                 }
             if (n == 0) return new float[3];
 
@@ -99,7 +109,7 @@ namespace ClawAmbilight
             var col = Lift(r / ww, gg / ww, b / ww);
             double lum = 0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2];
             for (int ch = 0; ch < 3; ch++) col[ch] = C(lum + (col[ch] - lum) * sat);
-            double f = Math.Clamp(colored / (double)n * 4.0, 0, 1); // >= 25% colored pixels: pure color
+            double f = Math.Clamp(colored / n * 4.0, 0, 1); // >= 25% colored pixels: pure color
             return new[] { C(col[0] * f + gray[0] * (1 - f)), C(col[1] * f + gray[1] * (1 - f)), C(col[2] * f + gray[2] * (1 - f)) };
         }
 
