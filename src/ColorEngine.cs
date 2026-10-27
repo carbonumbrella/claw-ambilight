@@ -3,14 +3,14 @@ using System;
 namespace ClawAmbilight
 {
     /// <summary>Screen grid -> 9 LED colors. Algorithms ported 1:1 from claw_ambilight.py.
-    /// Zones: rows 1/18..13/18 only (skips the bottom ~30%: on-screen keyboard, taskbar, HUD);
+    /// Zones: the whole screen (the old bottom-30% cut left the LEDs dark for content at the bottom);
     /// each screen half is split into 4 quadrants mapped to the matching stick-ring quadrant.
     /// LEDs 0..3 right stick (SW, SE, NE, NW), 4..7 left stick (NE, NW, SW, SE), 8 = ABXY (right NE).</summary>
     public static class ColorEngine
     {
         public static float[] Targets(float[] grid, int w, int h, LightMode mode, double sat)
         {
-            int y0 = (int)Math.Round(h * 1.0 / 18), y2 = (int)Math.Round(h * 13.0 / 18), y1 = (y0 + y2) / 2;
+            int y0 = 0, y2 = h, y1 = h / 2;
             int x1 = w / 4, x2 = w / 2, x3 = 3 * w / 4;
             float[] Q(int xa, int xb, int ya, int yb) => mode == LightMode.Vibrant
                 ? Vibrant(grid, w, xa, xb, ya, yb, sat) : Ambient(grid, w, xa, xb, ya, yb, sat);
