@@ -46,17 +46,19 @@ Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "ClawAmbilight"; \
-  ValueData: """{app}\{#AppExe}"" --tray"; Tasks: autostart; Flags: uninsdeletevalue
+; autostart is the per-user logon task "ClawAmbilight" (the Run key waits for the desktop in Xbox mode)
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "ClawAmbilight"; \
-  Flags: deletevalue; Check: not WizardIsTaskSelected('autostart')
+  Flags: deletevalue uninsdeletevalue
 
 [Run]
+Filename: "{app}\{#AppExe}"; Parameters: "--set-autostart on"; Tasks: autostart; Flags: runhidden waituntilterminated
+Filename: "{app}\{#AppExe}"; Parameters: "--set-autostart off"; Tasks: not autostart; Flags: runhidden waituntilterminated
 Filename: "{app}\{#AppExe}"; Description: "Открыть настройки подсветки"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 ; graceful exit turns the LEDs off before the files go away
 Filename: "{app}\{#AppExe}"; Parameters: "--quit"; RunOnceId: "QuitApp"; Flags: runhidden waituntilterminated
+Filename: "{app}\{#AppExe}"; Parameters: "--set-autostart off"; RunOnceId: "Autostart"; Flags: runhidden waituntilterminated
 
 [UninstallDelete]
 ; settings in %APPDATA%\ClawAmbilight are kept on purpose (a reinstall keeps the user's setup)

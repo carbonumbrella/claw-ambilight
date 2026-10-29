@@ -36,10 +36,13 @@ namespace ClawAmbilight
         {
             int ri = Array.IndexOf(args, "--render");
             if (ri >= 0 && ri + 1 < args.Length) { Render(args[ri + 1], args.Length > ri + 2 ? args[ri + 2] : ""); return; }
+            int ai = Array.IndexOf(args, "--set-autostart");  // --set-autostart on|off: the installer, no window
+            if (ai >= 0 && ai + 1 < args.Length) { Autostart.Apply(args[ai + 1] == "on"); return; }
             _mutex = new Mutex(true, InstanceMutex, out bool first);
             bool quit = Array.IndexOf(args, "--quit") >= 0;
             if (!first)
             {
+                if (Array.IndexOf(args, "--tray") >= 0) return;  // autostart while already running: stay silent
                 try { EventWaitHandle.OpenExisting(quit ? QuitEvent : ShowEvent).Set(); } catch { }
                 if (quit)  // wait until the running copy has really exited (uninstaller deletes the exe next)
                 {
@@ -238,23 +241,34 @@ namespace ClawAmbilight
         }
     }
 
+    /// <summary>Autostart = the logon task "ClawAmbilight" (see LogonTask: the Run key waits for the desktop in Xbox
+    /// mode). The Run key is only a fallback when the task cannot be created; an old Run entry is migrated.</summary>
     static class Autostart
     {
-        const string Key = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        const string Key = @"Software\Microsoft\Windows\CurrentVersion\Run", Name = "ClawAmbilight";
+        static bool? _applied;  // Apply runs on every settings change: schtasks only when the wish changes
 
-        public static bool IsSet()
+        static bool InRun()
         {
             using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Key);
-            return k?.GetValue("ClawAmbilight") != null;
+            return k?.GetValue(Name) != null;
         }
+
+        public static bool IsSet() => LogonTask.Exists(Name) || InRun();
+
         public static void Apply(bool on)
         {
+            if (_applied == on) return;
+            _applied = on;
             try
             {
+                bool task = on && LogonTask.Create(Name, Environment.ProcessPath!, "--tray", "Claw stick LEDs follow the screen (tray)");
+                if (on && !task) Log.Write("autostart: logon task failed, using the Run key");
+                if (!task) LogonTask.Delete(Name);
                 using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Key, true);
                 if (k == null) return;
-                if (on) k.SetValue("ClawAmbilight", $"\"{Environment.ProcessPath}\" --tray");
-                else if (k.GetValue("ClawAmbilight") != null) k.DeleteValue("ClawAmbilight");
+                if (on && !task) k.SetValue(Name, $"\"{Environment.ProcessPath}\" --tray");
+                else if (k.GetValue(Name) != null) k.DeleteValue(Name);
             }
             catch (Exception e) { Log.Write("autostart: " + e.Message); }
         }

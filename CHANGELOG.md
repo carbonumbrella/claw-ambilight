@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## Unreleased - autostart works in Xbox mode
+
+- Autostart is now a per-user logon task "ClawAmbilight" instead of the Run key: Windows' Xbox full screen
+  experience starts Run-key apps only on the first exit to the desktop, so the LEDs stayed dark after booting
+  into Xbox mode. Registering a logon task for oneself needs no admin rights. An old Run entry is migrated on
+  start; the Run key stays as a fallback if the task cannot be created.
+- `--set-autostart on|off` for the installer; a second launch with `--tray` no longer opens the window.
+
 ## 0.9.3 (2026-10-29) - settings window no longer eats CPU and RAM
 
 - The open settings window cost ~23% of a core even with the lights off: the preview repainted 10x/s
