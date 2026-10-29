@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased - autostart works in Xbox mode
+## 0.9.4 (2026-10-29) - autostart works in Xbox mode
 
 - Autostart is now a per-user logon task "ClawAmbilight" instead of the Run key: Windows' Xbox full screen
   experience starts Run-key apps only on the first exit to the desktop, so the LEDs stayed dark after booting
