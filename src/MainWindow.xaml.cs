@@ -44,13 +44,16 @@ namespace ClawAmbilight
             _saveDelay.Tick += (_, _) => { _saveDelay.Stop(); App.Apply(Collect()); };
             _preview.Tick += (_, _) => UpdatePreview();
             TitleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
-            CloseBtn.Click += (_, _) => Hide();
-            HideBtn.Click += (_, _) => Hide();
+            CloseBtn.Click += (_, _) => Close();
+            HideBtn.Click += (_, _) => Close();
             QuitBtn.Click += (_, _) => ((App)Application.Current).Quit();
-            KeyDown += (_, e) => { if (e.Key == Key.Escape) Hide(); };
-            IsVisibleChanged += (_, _) => { if (IsVisible) _preview.Start(); else _preview.Stop(); };
-            Closing += (_, e) => { e.Cancel = true; Hide(); };
-            SystemEvents.UserPreferenceChanged += (_, _) => Dispatcher.Invoke(ApplyTheme);
+            KeyDown += (_, e) => { if (e.Key == Key.Escape) Close(); };
+            IsVisibleChanged += (_, _) => { if (IsVisible) { _previewValid = false; _preview.Start(); } else _preview.Stop(); };
+            // closing destroys the window (it is recreated on show): a hidden WPF window kept ~150 MB of
+            // software-rendering buffers; display on/off notifications live in App's own hidden HWND
+            UserPreferenceChangedEventHandler theme = (_, _) => Dispatcher.Invoke(ApplyTheme);
+            SystemEvents.UserPreferenceChanged += theme;
+            Closed += (_, _) => { _preview.Stop(); _saveDelay.Stop(); SystemEvents.UserPreferenceChanged -= theme; };
             LoadFrom(App.Engine.Settings);
             // never taller than the screen (175% scaling on 1920x1200 leaves ~650 DIP): scroll instead
             Scroller.MaxHeight = SystemParameters.WorkArea.Height - 80;
@@ -140,27 +143,43 @@ namespace ClawAmbilight
             Preview.Children.Add(label);
         }
 
+        // The glow is a radial gradient, not a DropShadowEffect: blur effects in this AllowsTransparency window
+        // are rendered in software for the whole window, 10x a second that cost ~23% of a core.
         void AddLed(int index, double x, double y, double size)
         {
-            var e = new Ellipse { Width = size, Height = size, Fill = Brushes.Black,
-                Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 0, Opacity = 0.9, Color = Colors.Black } };
+            var glow = new Ellipse { Width = size * 2.6, Height = size * 2.6, Fill = Brushes.Transparent, IsHitTestVisible = false };
+            Canvas.SetLeft(glow, x - size * 1.3); Canvas.SetTop(glow, y - size * 1.3);
+            Preview.Children.Add(glow);
+            var e = new Ellipse { Width = size, Height = size, Fill = Brushes.Black };
             Canvas.SetLeft(e, x - size / 2); Canvas.SetTop(e, y - size / 2);
             Preview.Children.Add(e);
             _ledDots[index] = e;
+            _ledGlows[index] = glow;
         }
 
-        public void RenderPreviewOnce() => UpdatePreview();
+        readonly Ellipse[] _ledGlows = new Ellipse[HidLeds.LedCount];
+        readonly Color[] _shown = new Color[HidLeds.LedCount];
+        bool _previewValid;
 
+        public void RenderPreviewOnce() { _previewValid = false; UpdatePreview(); }
+
+        /// <summary>Repaints only what changed: an unchanged frame (static screen, lights off) costs nothing.</summary>
         void UpdatePreview()
         {
             var cur = App.Engine.Current;
             for (int i = 0; i < HidLeds.LedCount; i++)
             {
                 var c = Color.FromRgb((byte)Math.Clamp(cur[i * 3], 0, 255), (byte)Math.Clamp(cur[i * 3 + 1], 0, 255), (byte)Math.Clamp(cur[i * 3 + 2], 0, 255));
-                _ledDots[i].Fill = new SolidColorBrush(c);
-                ((DropShadowEffect)_ledDots[i].Effect).Color = c;
+                if (_previewValid && c == _shown[i]) continue;
+                _shown[i] = c;
+                var fill = new SolidColorBrush(c); fill.Freeze();
+                _ledDots[i].Fill = fill;
+                var glow = new RadialGradientBrush(Color.FromArgb(150, c.R, c.G, c.B), Color.FromArgb(0, c.R, c.G, c.B)); glow.Freeze();
+                _ledGlows[i].Fill = glow;
             }
-            StatusText.Text = App.Engine.Status;
+            _previewValid = true;
+            string status = App.Engine.Status;
+            if (StatusText.Text != status) StatusText.Text = status;
         }
 
         // ---------------- theme (follows Windows light/dark like the assistant's dialog)
@@ -183,15 +202,17 @@ namespace ClawAmbilight
         [DllImport("user32.dll")]
         static extern IntPtr RegisterPowerSettingNotification(IntPtr hRecipient, ref Guid powerSettingGuid, int flags);
 
-        public void Prepare()
+        /// <summary>A hidden HWND that only receives display on/off notifications (lives as long as the app).</summary>
+        public static HwndSource CreatePowerWindow()
         {
-            var hwnd = new WindowInteropHelper(this).EnsureHandle();
+            var src = new HwndSource(new HwndSourceParameters("ClawAmbilightPower") { Width = 0, Height = 0, WindowStyle = 0 });
             var guid = ConsoleDisplayState;
-            RegisterPowerSettingNotification(hwnd, ref guid, 0);
-            HwndSource.FromHwnd(hwnd)!.AddHook(WndProc);
+            RegisterPowerSettingNotification(src.Handle, ref guid, 0);
+            src.AddHook(WndProc);
+            return src;
         }
 
-        IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        static IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             const int WM_POWERBROADCAST = 0x218, PBT_POWERSETTINGCHANGE = 0x8013;
             if (msg == WM_POWERBROADCAST && wParam.ToInt32() == PBT_POWERSETTINGCHANGE)

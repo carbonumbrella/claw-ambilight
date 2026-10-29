@@ -23,7 +23,11 @@ namespace ClawAmbilight
         public static Engine Engine = null!;
         static Mutex? _mutex, _pyMutex;
         Forms.NotifyIcon _tray = null!;
-        MainWindow _win = null!;
+        MainWindow? _win;  // only while the settings window is open
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        static extern bool SetProcessWorkingSetSize(IntPtr process, nint min, nint max);
+        System.Windows.Interop.HwndSource? _power;
         FileSystemWatcher? _watcher;
         public static DateTime IgnoreWatcherUntil;
 
@@ -117,8 +121,7 @@ namespace ClawAmbilight
             }
             Autostart.Apply(s.Autostart);
             Engine = new Engine(s);
-            _win = new MainWindow();
-            _win.Prepare();  // creates the HWND for display on/off notifications without showing it
+            _power = ClawAmbilight.MainWindow.CreatePowerWindow();  // display on/off -> pause, without any window open
 
             _tray = new Forms.NotifyIcon { Icon = MakeIcon(), Text = "Подсветка Claw", Visible = true };
             _tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) ShowWindow(); };
@@ -146,7 +149,7 @@ namespace ClawAmbilight
                 var s = Settings.Load();
                 Engine.Settings = s;
                 Autostart.Apply(s.Autostart);
-                _win.LoadFrom(s);
+                _win?.LoadFrom(s);
                 Log.Write("settings changed externally");
             });
         }
@@ -162,6 +165,20 @@ namespace ClawAmbilight
 
         void ShowWindow()
         {
+            if (_win == null)
+            {
+                _win = new MainWindow();
+                _win.Closed += (_, _) =>
+                {
+                    _win = null;
+                    GC.Collect();  // give the window's buffers back now, not at some later collection
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    // WPF keeps ~80 MB of native render buffers after the first window; nothing uses them
+                    // while the window is closed, so let Windows page them out of RAM
+                    SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1);
+                };
+            }
             _win.Show();
             if (_win.WindowState == WindowState.Minimized) _win.WindowState = WindowState.Normal;
             _win.Activate();
@@ -171,13 +188,13 @@ namespace ClawAmbilight
         {
             var m = new Forms.ContextMenuStrip();
             var toggle = new Forms.ToolStripMenuItem("Подсветка включена") { CheckOnClick = false };
-            toggle.Click += (_, _) => { var s = Engine.Settings.Clone(); s.Enabled = !s.Enabled; Apply(s); _win.LoadFrom(s); };
+            toggle.Click += (_, _) => { var s = Engine.Settings.Clone(); s.Enabled = !s.Enabled; Apply(s); _win?.LoadFrom(s); };
             m.Items.Add(toggle);
             m.Items.Add(new Forms.ToolStripSeparator());
             foreach (var (mode, name) in new[] { (LightMode.Ambient, "Мягкий"), (LightMode.Vibrant, "Яркий"), (LightMode.Static, "Один цвет") })
             {
                 var item = new Forms.ToolStripMenuItem(name);
-                item.Click += (_, _) => { var s = Engine.Settings.Clone(); s.Mode = mode; s.Enabled = true; Apply(s); _win.LoadFrom(s); };
+                item.Click += (_, _) => { var s = Engine.Settings.Clone(); s.Mode = mode; s.Enabled = true; Apply(s); _win?.LoadFrom(s); };
                 item.Tag = mode;
                 m.Items.Add(item);
             }

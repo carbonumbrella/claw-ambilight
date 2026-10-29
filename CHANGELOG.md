@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Unreleased - settings window no longer eats CPU and RAM
+
+- The open settings window cost ~23% of a core even with the lights off: the preview repainted 10x/s
+  (new brushes every tick) and each LED had a blurred DropShadowEffect, which this AllowsTransparency
+  window renders in software for the whole window. Now: repaint only changed LEDs, radial-gradient glow
+  instead of the blur, status text set only on change. Window open: 26% -> 6.8% with the lights on
+  (3% is the capture itself), 0.2% with the lights off.
+- Closing the window destroys it (recreated on show) and trims the working set: RAM after closing
+  ~300 MB -> ~50 MB. Display on/off notifications moved to a hidden HwndSource owned by App.
+
 ## 0.9.2 (2026-10-27) - taskbar cut, whole screen in fullscreen, edge weighting
 
 - `ScreenArea`: while the foreground window covers the primary monitor (games, fullscreen video, F11) the
