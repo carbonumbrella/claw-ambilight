@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -80,13 +80,16 @@ namespace ClawAmbilight
                 Array.Copy(demo, Engine.Current, 27);
                 Engine.Status = "";
                 var w = new MainWindow();
+                bool narrow = variant == "narrow";  // the portrait Claw layout, 690 DIP wide
+                if (narrow) Responsive.Preview(w, true);
                 var root = (System.Windows.FrameworkElement)w.Content;
                 w.Content = null;
                 w.RenderPreviewOnce();
                 var holder = new System.Windows.Controls.Border { Background = System.Windows.Media.Brushes.DimGray };
+                if (narrow) holder.Width = 690;  // the real window takes the full width, not just what it needs
                 foreach (var k in w.Resources.Keys) holder.Resources[k] = w.Resources[k];  // styles and theme brushes
                 holder.Child = variant == "picker" ? w.PickerLeft.TakePopupContent() : root;
-                holder.Measure(new System.Windows.Size(variant == "picker" ? 300 : 840, double.PositiveInfinity));
+                holder.Measure(new System.Windows.Size(variant == "picker" ? 300 : narrow ? 690 : 840, double.PositiveInfinity));
                 holder.Arrange(new System.Windows.Rect(holder.DesiredSize));
                 holder.UpdateLayout();
                 var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)holder.ActualWidth, (int)holder.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);

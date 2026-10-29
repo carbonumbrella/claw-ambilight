@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -55,8 +55,9 @@ namespace ClawAmbilight
             SystemEvents.UserPreferenceChanged += theme;
             Closed += (_, _) => { _preview.Stop(); _saveDelay.Stop(); SystemEvents.UserPreferenceChanged -= theme; };
             LoadFrom(App.Engine.Settings);
-            // never taller than the screen (175% scaling on 1920x1200 leaves ~650 DIP): scroll instead
-            Scroller.MaxHeight = SystemParameters.WorkArea.Height - 80;
+            // never wider or taller than the screen, also after rotation (portrait Claw: ~690 DIP wide):
+            // one column, the scroller takes the rest of the height, re-centered
+            Responsive.Attach(this, 840, Scroller);
         }
 
         // ---------------- settings <-> controls
