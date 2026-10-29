@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.9.5 (2026-10-30) - Claw A8 support
+
+- The LEDs are also found on the controller's Xbox 360 (XInput) interface, VID 0DB0 PID 1901 MI_01 (vendor
+  page 0xFFA0, 64-byte reports). That is how the Claw A8 shows up; the same command lights its sticks
+  (tested with tools\Probe-ClawLeds.ps1 on an A8). PID 1902 MI_00 COL02 is still tried first.
+- The device is looked up again on every reopen, and every registry instance is tried until one opens, so a
+  controller mode switch (1901 <-> 1902) or a stale unplugged instance no longer leaves the LEDs dark.
+- tools\Probe-ClawLeds: finds the LED interface on untested models (read-only, optional red light test).
+
 ## 0.9.4 (2026-10-29) - autostart works in Xbox mode
 
 - Autostart is now a per-user logon task "ClawAmbilight" instead of the Run key: Windows' Xbox full screen

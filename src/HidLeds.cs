@@ -1,12 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 
 namespace ClawAmbilight
 {
-    /// <summary>MSI Claw 8 AI+ controller LEDs over the vendor HID interface (VID 0DB0, PID 1902,
-    /// MI_00 COL02). Protocol from claw_ambilight.py (verified by live probe): report 0x0F, header
+    /// <summary>MSI Claw controller LEDs over the vendor HID interface (VID 0DB0: PID 1902 MI_00 COL02, or
+    /// PID 1901 MI_01 in XInput mode, e.g. the Claw A8). Protocol from claw_ambilight.py (verified by live probe): report 0x0F, header
     /// 0x3C, command 0x21 (write RAM profile), firmware 2.30+ addresses 0x02/0x4A, 9 LEDs, 4 frames
     /// written so the static profile never cycles. RAM only: no flash wear.</summary>
     public sealed class HidLeds : IDisposable
@@ -23,18 +24,35 @@ namespace ClawAmbilight
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool WriteFile(SafeFileHandle h, byte[] buf, int len, out int written, IntPtr ovl);
 
-        public static string? FindDevicePath()
+        /// <summary>The vendor interface takes the same LED command in both controller modes:
+        /// PID 1902 MI_00 COL02 (Claw 8 AI+ as set up by ClawTweaks) and PID 1901 MI_01, the Xbox 360 (XInput)
+        /// mode the Claw A8 runs in (found with tools\Probe-ClawLeds.ps1, sticks lit on the A8).
+        /// All instances of each, the registry keeps unplugged ones too: Open() takes the first that opens.</summary>
+        public static IEnumerable<string> DevicePaths()
         {
             using var hid = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\HID");
-            if (hid == null) return null;
-            foreach (string sub in hid.GetSubKeyNames())
+            if (hid == null) yield break;
+            var subs = hid.GetSubKeyNames();
+            foreach (Func<string, bool> match in new Func<string, bool>[]
+                     {
+                         u => u.Contains("VID_0DB0&PID_1902&MI_00") && u.Contains("COL02"),
+                         u => u.EndsWith("VID_0DB0&PID_1901&MI_01"),
+                     })
+                foreach (string sub in subs)
+                {
+                    if (!match(sub.ToUpperInvariant())) continue;
+                    using var inst = hid.OpenSubKey(sub);
+                    foreach (string id in inst?.GetSubKeyNames() ?? Array.Empty<string>())
+                        yield return $@"\\?\hid#{sub.ToLowerInvariant()}#{id.ToLowerInvariant()}#{{4d1e55b2-f16f-11cf-88cb-001111000030}}";
+                }
+        }
+
+        public static string? FindDevicePath()
+        {
+            foreach (string p in DevicePaths())
             {
-                string u = sub.ToUpperInvariant();
-                if (!u.Contains("VID_0DB0&PID_1902&MI_00") || !u.Contains("COL02")) continue;
-                using var inst = hid.OpenSubKey(sub);
-                string[]? ids = inst?.GetSubKeyNames();
-                if (ids == null || ids.Length == 0) continue;
-                return $@"\\?\hid#{sub.ToLowerInvariant()}#{ids[0].ToLowerInvariant()}#{{4d1e55b2-f16f-11cf-88cb-001111000030}}";
+                using var h = CreateFileW(p, 0xC0000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+                if (!h.IsInvalid) return p;
             }
             return null;
         }
@@ -42,7 +60,7 @@ namespace ClawAmbilight
         bool Open()
         {
             _h?.Dispose();
-            _path ??= FindDevicePath();
+            _path = FindDevicePath();  // again on every reopen: the controller can switch modes (PID 1901 <-> 1902)
             if (_path == null) return false;
             _h = CreateFileW(_path, 0xC0000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero); // RW, share RW, OPEN_EXISTING
             return !_h.IsInvalid;
