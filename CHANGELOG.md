@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased - settings window no longer eats CPU and RAM
+## 0.9.3 (2026-10-29) - settings window no longer eats CPU and RAM
 
 - The open settings window cost ~23% of a core even with the lights off: the preview repainted 10x/s
   (new brushes every tick) and each LED had a blurred DropShadowEffect, which this AllowsTransparency
