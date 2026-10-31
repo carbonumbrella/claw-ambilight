@@ -130,7 +130,7 @@ namespace ClawAmbilight
             Engine = new Engine(s);
             _power = ClawAmbilight.MainWindow.CreatePowerWindow();  // display on/off -> pause, without any window open
 
-            _tray = new Forms.NotifyIcon { Icon = MakeIcon(), Text = "Подсветка Claw", Visible = true };
+            _tray = new Forms.NotifyIcon { Icon = MakeIcon(), Text = "Подсветка ClawAmbilight", Visible = true };
             _tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) ShowWindow(); };
             _tray.ContextMenuStrip = BuildMenu();
 
@@ -172,6 +172,7 @@ namespace ClawAmbilight
 
         void ShowWindow()
         {
+            var opening = Stopwatch.StartNew();
             if (_win == null)
             {
                 _win = new MainWindow();
@@ -185,6 +186,12 @@ namespace ClawAmbilight
                     // while the window is closed, so let Windows page them out of RAM
                     SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1);
                 };
+            }
+            if (!_win.IsVisible)
+            {
+                EventHandler? shown = null;  // how long the user waits, kept in the log: first opens are the slow ones
+                shown = (_, _) => { Log.Write($"window on screen after {opening.ElapsedMilliseconds} ms"); _win.ContentRendered -= shown; };
+                _win.ContentRendered += shown;
             }
             Responsive.BringToFront(_win);
         }
