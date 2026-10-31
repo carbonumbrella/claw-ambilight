@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.9.8 (2026-11-01) - opens faster, less memory at start
+
+- ClawTweaks' library opens the window without its ~4 s wait: it looks for the tray icon by app name, so the tooltip now
+  contains "ClawAmbilight". The window itself takes 0.9 s the first time and 0.2 s later (now in the log).
+- The window comes to the front, also over the Xbox shell.
+- Memory right after a start to the tray is released as after closing the window.
+
 ## 0.9.7 (2026-11-01) - no crash when the controller is briefly gone
 
 - Since 0.9.5 the app died with ObjectDisposedException if the LED interface could not be found during a reopen, as

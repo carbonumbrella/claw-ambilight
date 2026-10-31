@@ -145,6 +145,20 @@ namespace ClawAmbilight
             new Thread(() => { quitSignal.WaitOne(); Dispatcher.Invoke(Quit); }) { IsBackground = true }.Start();
 
             if (!hidden) ShowWindow();
+            else
+            {
+                // started to the tray: WPF's start-up allocations (~280 MB) are not needed until the window opens
+                var trim = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+                trim.Tick += (_, _) =>
+                {
+                    trim.Stop();
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1);
+                };
+                trim.Start();
+            }
         }
 
         void OnExternalChange()
