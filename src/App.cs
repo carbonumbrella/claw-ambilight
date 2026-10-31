@@ -43,6 +43,7 @@ namespace ClawAmbilight
             if (!first)
             {
                 if (Array.IndexOf(args, "--tray") >= 0) return;  // autostart while already running: stay silent
+                Responsive.AllowForeground();
                 try { EventWaitHandle.OpenExisting(quit ? QuitEvent : ShowEvent).Set(); } catch { }
                 if (quit)  // wait until the running copy has really exited (uninstaller deletes the exe next)
                 {
@@ -185,9 +186,7 @@ namespace ClawAmbilight
                     SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, -1, -1);
                 };
             }
-            _win.Show();
-            if (_win.WindowState == WindowState.Minimized) _win.WindowState = WindowState.Normal;
-            _win.Activate();
+            Responsive.BringToFront(_win);
         }
 
         Forms.ContextMenuStrip BuildMenu()
