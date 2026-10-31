@@ -60,6 +60,7 @@ namespace ClawAmbilight
         bool Open()
         {
             _h?.Dispose();
+            _h = null;  // a disposed handle left here crashed the next Write when the controller was briefly gone (boot)
             _path = FindDevicePath();  // again on every reopen: the controller can switch modes (PID 1901 <-> 1902)
             if (_path == null) return false;
             _h = CreateFileW(_path, 0xC0000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero); // RW, share RW, OPEN_EXISTING

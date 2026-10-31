@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.9.7 (2026-11-01) - no crash when the controller is briefly gone
+
+- Since 0.9.5 the app died with ObjectDisposedException if the LED interface could not be found during a reopen, as
+  happens right after boot while the controller re-enumerates: Open() left a disposed handle that Write() then used.
+  It now keeps retrying until the controller is back.
+
 ## 0.9.5 (2026-10-30) - Claw A8 support
 
 - The LEDs are also found on the controller's Xbox 360 (XInput) interface, VID 0DB0 PID 1901 MI_01 (vendor
