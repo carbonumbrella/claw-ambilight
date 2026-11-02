@@ -217,8 +217,14 @@
               <RadioButton x:Name="ModeAmbient" Content="Мягкий" GroupName="mode" Style="{StaticResource Seg}"/>
               <RadioButton x:Name="ModeVibrant" Content="Яркий" GroupName="mode" Style="{StaticResource Seg}"/>
               <RadioButton x:Name="ModeStatic" Content="Один цвет" GroupName="mode" Style="{StaticResource Seg}"/>
+              <RadioButton x:Name="ModeButtons" Content="Кнопки" GroupName="mode" Style="{StaticResource Seg}" ToolTip="Светятся только кнопки ABXY, стики погашены"/>
             </UniformGrid>
           </Border>
+          <StackPanel x:Name="ButtonsBlock">
+            <TextBlock Text="ЦВЕТ" Style="{StaticResource Label}"/>
+            <local:ColorPicker x:Name="PickerButtons" HorizontalAlignment="Left" Margin="0,2,0,0"/>
+            <TextBlock Text="кнопки ABXY, стики погашены" FontSize="11" Foreground="{DynamicResource Sub}" Margin="2,5,0,0"/>
+          </StackPanel>
           <StackPanel x:Name="Swatches">
             <TextBlock Text="ЦВЕТА" Style="{StaticResource Label}"/>
             <Grid Margin="0,2,0,0">
@@ -252,7 +258,7 @@
               </Button.Template>
             </Button>
           </StackPanel>
-          <!-- screen capture rate: meaningless for a fixed color, hidden in "Один цвет" -->
+          <!-- screen capture rate: meaningless for a fixed color, hidden in "Один цвет" and "Кнопки" -->
           <StackPanel x:Name="FpsBlock">
             <TextBlock Text="ЧАСТОТА ОБНОВЛЕНИЯ" Style="{StaticResource Label}"/>
             <Border Style="{StaticResource SegBox}">

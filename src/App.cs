@@ -70,8 +70,10 @@ namespace ClawAmbilight
                 var s = Settings.Load();
                 if (variant == "ambient") s.Mode = LightMode.Ambient;
                 if (variant is "static" or "picker") { s.Mode = LightMode.Static; s.StaticLeft = Settings.JoyConBlue; s.StaticRight = Settings.JoyConRed; s.BrightnessSource = BrightnessSource.Manual; s.Brightness = 60; }
+                if (variant == "buttons") { s.Mode = LightMode.Buttons; s.ButtonsColor = Settings.JoyConRed; s.BrightnessSource = BrightnessSource.Manual; s.Brightness = 60; }
                 Engine = new Engine(s, run: false);
                 float[] demo = { 255, 80, 40, 255, 140, 0, 60, 200, 255, 120, 60, 255, 40, 220, 120, 0, 160, 255, 255, 40, 120, 250, 200, 40, 60, 200, 255 };
+                if (variant == "buttons") { Array.Clear(demo); demo[24] = 255; demo[25] = 60; demo[26] = 40; }
                 if (variant == "static")
                     for (int i = 0; i < 9; i++)
                     {
@@ -217,7 +219,7 @@ namespace ClawAmbilight
             toggle.Click += (_, _) => { var s = Engine.Settings.Clone(); s.Enabled = !s.Enabled; Apply(s); _win?.LoadFrom(s); };
             m.Items.Add(toggle);
             m.Items.Add(new Forms.ToolStripSeparator());
-            foreach (var (mode, name) in new[] { (LightMode.Ambient, "Мягкий"), (LightMode.Vibrant, "Яркий"), (LightMode.Static, "Один цвет") })
+            foreach (var (mode, name) in new[] { (LightMode.Ambient, "Мягкий"), (LightMode.Vibrant, "Яркий"), (LightMode.Static, "Один цвет"), (LightMode.Buttons, "Только кнопки") })
             {
                 var item = new Forms.ToolStripMenuItem(name);
                 item.Click += (_, _) => { var s = Engine.Settings.Clone(); s.Mode = mode; s.Enabled = true; Apply(s); _win?.LoadFrom(s); };

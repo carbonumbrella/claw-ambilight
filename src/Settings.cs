@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace ClawAmbilight
 {
-    public enum LightMode { Ambient, Vibrant, Static }
+    public enum LightMode { Ambient, Vibrant, Static, Buttons }
     public enum BrightnessSource { Display, Manual }
     public enum BatteryPolicy { Normal, Eco, Off }
 
@@ -27,6 +27,7 @@ namespace ClawAmbilight
         public string StaticColor { get; set; } = "#3E7BFA";   // legacy single color, seeds both sides
         public string? StaticLeft { get; set; }                // left stick
         public string? StaticRight { get; set; }               // right stick + ABXY
+        public string? ButtonsColor { get; set; }              // ABXY in the "only the buttons" mode, sticks dark
 
         public const string JoyConBlue = "#0AB9E6", JoyConRed = "#FF3C28";  // Nintendo Switch neon Joy-Con
         public BatteryPolicy OnBattery { get; set; } = BatteryPolicy.Eco;
@@ -66,6 +67,7 @@ namespace ClawAmbilight
             s.Fps = Math.Clamp(s.Fps, 5, 60);
             s.StaticLeft ??= s.StaticColor;
             s.StaticRight ??= s.StaticColor;
+            s.ButtonsColor ??= s.StaticRight;
             return s;
         }
 

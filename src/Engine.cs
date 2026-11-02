@@ -73,9 +73,11 @@ namespace ClawAmbilight
                 int fps = battery && s.OnBattery == BatteryPolicy.Eco ? Math.Min(s.Fps, 10) : s.Fps;
                 long frameStart = sw.ElapsedMilliseconds;
 
-                if (s.Mode == LightMode.Static)
+                if (s.Mode is LightMode.Static or LightMode.Buttons)
                 {
-                    targets = StaticTargets(s.StaticLeft ?? s.StaticColor, s.StaticRight ?? s.StaticColor);
+                    targets = s.Mode == LightMode.Buttons
+                        ? ButtonsTargets(s.ButtonsColor ?? s.StaticColor)
+                        : StaticTargets(s.StaticLeft ?? s.StaticColor, s.StaticRight ?? s.StaticColor);
                     Status = "";  // header shows only pauses and problems
                     Thread.Sleep(50);
                 }
@@ -101,7 +103,7 @@ namespace ClawAmbilight
                 // change is visible, snap tiny tails so values settle and USB writes stop.
                 float maxDiff = 0;
                 for (int i = 0; i < 27; i++) maxDiff = Math.Max(maxDiff, Math.Abs(targets[i] - Current[i]));
-                float k = s.Mode == LightMode.Static ? 0.25f : (float)s.Smoothness;
+                float k = s.Mode is LightMode.Static or LightMode.Buttons ? 0.25f : (float)s.Smoothness;
                 for (int i = 0; i < 27; i++)
                 {
                     float d = targets[i] - Current[i];
@@ -143,6 +145,19 @@ namespace ClawAmbilight
                     var c = i is >= 4 and <= 7 ? l : r;
                     t[i * 3] = c.R; t[i * 3 + 1] = c.G; t[i * 3 + 2] = c.B;
                 }
+            }
+            catch { }
+            return t;
+        }
+
+        /// <summary>LED 8 = ABXY, the stick rings stay dark.</summary>
+        static float[] ButtonsTargets(string color)
+        {
+            var t = new float[27];
+            try
+            {
+                var c = System.Drawing.ColorTranslator.FromHtml(color);
+                t[24] = c.R; t[25] = c.G; t[26] = c.B;
             }
             catch { }
             return t;

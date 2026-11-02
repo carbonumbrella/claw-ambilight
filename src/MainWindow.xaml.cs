@@ -26,6 +26,7 @@ namespace ClawAmbilight
             BuildPreview();
             PickerLeft.ColorChanged += _ => Changed();
             PickerRight.ColorChanged += _ => Changed();
+            PickerButtons.ColorChanged += _ => Changed();
             JoyConBtn.Click += (_, _) =>
             {
                 _loading = true;
@@ -34,7 +35,7 @@ namespace ClawAmbilight
                 _loading = false;
                 Changed();
             };
-            foreach (var rb in new[] { ModeAmbient, ModeVibrant, ModeStatic, BrightDisplay, BrightManual, Fps15, Fps30, Fps60, BatNormal, BatEco, BatOff })
+            foreach (var rb in new[] { ModeAmbient, ModeVibrant, ModeStatic, ModeButtons, BrightDisplay, BrightManual, Fps15, Fps30, Fps60, BatNormal, BatEco, BatOff })
                 rb.Checked += (_, _) => Changed();
             EnabledSwitch.Click += (_, _) => Changed();
             AutostartSwitch.Click += (_, _) => Changed();
@@ -66,7 +67,7 @@ namespace ClawAmbilight
         {
             _loading = true;
             EnabledSwitch.IsChecked = s.Enabled;
-            (s.Mode switch { LightMode.Vibrant => ModeVibrant, LightMode.Static => ModeStatic, _ => ModeAmbient }).IsChecked = true;
+            (s.Mode switch { LightMode.Vibrant => ModeVibrant, LightMode.Static => ModeStatic, LightMode.Buttons => ModeButtons, _ => ModeAmbient }).IsChecked = true;
             (s.BrightnessSource == BrightnessSource.Manual ? BrightManual : BrightDisplay).IsChecked = true;
             BrightSlider.Value = s.Brightness;
             SatSlider.Value = s.Saturation;
@@ -76,6 +77,7 @@ namespace ClawAmbilight
             AutostartSwitch.IsChecked = s.Autostart;
             PickerLeft.SetHex(s.StaticLeft ?? s.StaticColor);
             PickerRight.SetHex(s.StaticRight ?? s.StaticColor);
+            PickerButtons.SetHex(s.ButtonsColor ?? s.StaticColor);
             _loading = false;
             UpdateLabels();
         }
@@ -84,7 +86,8 @@ namespace ClawAmbilight
         {
             var s = App.Engine.Settings.Clone();
             s.Enabled = EnabledSwitch.IsChecked == true;
-            s.Mode = ModeVibrant.IsChecked == true ? LightMode.Vibrant : ModeStatic.IsChecked == true ? LightMode.Static : LightMode.Ambient;
+            s.Mode = ModeVibrant.IsChecked == true ? LightMode.Vibrant : ModeStatic.IsChecked == true ? LightMode.Static
+                : ModeButtons.IsChecked == true ? LightMode.Buttons : LightMode.Ambient;
             s.BrightnessSource = BrightManual.IsChecked == true ? BrightnessSource.Manual : BrightnessSource.Display;
             s.Brightness = (int)Math.Round(BrightSlider.Value);
             s.Saturation = Math.Round(SatSlider.Value, 1);
@@ -94,6 +97,7 @@ namespace ClawAmbilight
             s.Autostart = AutostartSwitch.IsChecked == true;
             s.StaticLeft = PickerLeft.Hex;
             s.StaticRight = PickerRight.Hex;
+            s.ButtonsColor = PickerButtons.Hex;
             return s;
         }
 
@@ -112,8 +116,9 @@ namespace ClawAmbilight
             SatText.Text = $"×{SatSlider.Value:0.0}";
             SmoothText.Text = SmoothSlider.Value <= 3 ? "плавно" : SmoothSlider.Value >= 8 ? "мгновенно" : "средне";
             SatSlider.IsEnabled = ModeAmbient.IsChecked == true;
-            bool fixedColor = ModeStatic.IsChecked == true;
-            Swatches.Visibility = fixedColor ? Visibility.Visible : Visibility.Collapsed;
+            bool fixedColor = ModeStatic.IsChecked == true || ModeButtons.IsChecked == true;
+            Swatches.Visibility = ModeStatic.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            ButtonsBlock.Visibility = ModeButtons.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
             FpsBlock.Visibility = fixedColor ? Visibility.Collapsed : Visibility.Visible;  // no screen capture then
             SmoothSlider.IsEnabled = !fixedColor;
         }
