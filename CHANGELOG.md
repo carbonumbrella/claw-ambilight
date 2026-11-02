@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.9.9 - "Кнопки" mode: only the ABXY light
+## 0.9.9 (2026-11-03) - "Кнопки" mode: only the ABXY light
 
 - New mode `buttons`: LED 8 (ABXY) in its own color (`buttonsColor`, starts as the right-side color), stick rings dark, no
   screen capture. Brightness stays shared with the other modes, so the same slider and the display link apply.
