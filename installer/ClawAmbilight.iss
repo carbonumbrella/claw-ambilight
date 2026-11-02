@@ -36,7 +36,7 @@ Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Tasks]
 Name: "autostart"; Description: "Запускать вместе с Windows (в трее)"; GroupDescription: "Дополнительно:"
-Name: "desktopicon"; Description: "Ярлык на рабочем столе"; GroupDescription: "Дополнительно:"; Flags: unchecked
+Name: "desktopicon"; Description: "Ярлык на рабочем столе"; GroupDescription: "Дополнительно:"
 
 [Files]
 Source: "..\publish\fd\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
