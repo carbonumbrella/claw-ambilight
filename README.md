@@ -1,5 +1,9 @@
 # Подсветка Claw 8 AI+ (ClawAmbilight)
 
+[![release](https://img.shields.io/github/v/release/carbonumbrella/claw-ambilight?include_prereleases&label=release)](https://github.com/carbonumbrella/claw-ambilight/releases)
+
+**[Скачать последнюю версию](https://github.com/carbonumbrella/claw-ambilight/releases)**
+
 Подсветка стиков и кнопок ABXY на **MSI Claw 8 AI+** по картинке на экране, как Ambilight у телевизоров.
 
 ## Совместимость
