@@ -14,11 +14,14 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <Version>0.9.9</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- an idle tray app: no background GC thread, the heap kept small -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Vortice.Direct3D11" Version="3.*" />
     <PackageReference Include="System.Management" Version="10.*" />
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
   </ItemGroup>
 
 </Project>
