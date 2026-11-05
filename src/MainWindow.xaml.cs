@@ -18,6 +18,9 @@ namespace ClawAmbilight
         readonly DispatcherTimer _preview = new() { Interval = TimeSpan.FromMilliseconds(100) };
         readonly DispatcherTimer _saveDelay = new() { Interval = TimeSpan.FromMilliseconds(250) };
         bool _loading;
+        // the chosen battery policy: in "Один цвет" / "Кнопки" there is no screen capture, so "Экономно" (fewer captures)
+        // is hidden and shows as "Как от сети" there, while the choice itself is kept for the screen modes
+        BatteryPolicy _battery;
 
         public MainWindow()
         {
@@ -37,6 +40,8 @@ namespace ClawAmbilight
             };
             foreach (var rb in new[] { ModeAmbient, ModeVibrant, ModeStatic, ModeButtons, BrightDisplay, BrightManual, Fps15, Fps30, Fps60, BatNormal, BatEco, BatOff })
                 rb.Checked += (_, _) => Changed();
+            foreach (var (rb, policy) in new[] { (BatNormal, BatteryPolicy.Normal), (BatEco, BatteryPolicy.Eco), (BatOff, BatteryPolicy.Off) })
+                rb.Click += (_, _) => { _battery = policy; Changed(); };  // a click by the user, not the mode sync below
             EnabledSwitch.Click += (_, _) => Changed();
             AutostartSwitch.Click += (_, _) => Changed();
             BrightSlider.ValueChanged += (_, _) => Changed();
@@ -73,6 +78,7 @@ namespace ClawAmbilight
             SatSlider.Value = s.Saturation;
             SmoothSlider.Value = Math.Round(1 + Math.Log(s.Smoothness / 0.03) / Math.Log(1.45));
             (s.Fps <= 15 ? Fps15 : s.Fps >= 60 ? Fps60 : Fps30).IsChecked = true;
+            _battery = s.OnBattery;
             (s.OnBattery switch { BatteryPolicy.Normal => BatNormal, BatteryPolicy.Off => BatOff, _ => BatEco }).IsChecked = true;
             AutostartSwitch.IsChecked = s.Autostart;
             PickerLeft.SetHex(s.StaticLeft ?? s.StaticColor);
@@ -93,7 +99,7 @@ namespace ClawAmbilight
             s.Saturation = Math.Round(SatSlider.Value, 1);
             s.Smoothness = Math.Round(0.03 * Math.Pow(1.45, SmoothSlider.Value - 1), 3);
             s.Fps = Fps15.IsChecked == true ? 15 : Fps60.IsChecked == true ? 60 : 30;
-            s.OnBattery = BatNormal.IsChecked == true ? BatteryPolicy.Normal : BatOff.IsChecked == true ? BatteryPolicy.Off : BatteryPolicy.Eco;
+            s.OnBattery = _battery;
             s.Autostart = AutostartSwitch.IsChecked == true;
             s.StaticLeft = PickerLeft.Hex;
             s.StaticRight = PickerRight.Hex;
@@ -120,6 +126,15 @@ namespace ClawAmbilight
             Swatches.Visibility = ModeStatic.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
             ButtonsBlock.Visibility = ModeButtons.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
             FpsBlock.Visibility = fixedColor ? Visibility.Collapsed : Visibility.Visible;  // no screen capture then
+            BatEco.Visibility = fixedColor ? Visibility.Collapsed : Visibility.Visible;
+            var shown = _battery == BatteryPolicy.Off ? BatOff : _battery == BatteryPolicy.Eco && !fixedColor ? BatEco : BatNormal;
+            if (shown.IsChecked != true)
+            {
+                bool was = _loading;
+                _loading = true;  // a display sync, not a change
+                shown.IsChecked = true;
+                _loading = was;
+            }
             SmoothSlider.IsEnabled = !fixedColor;
         }
 
