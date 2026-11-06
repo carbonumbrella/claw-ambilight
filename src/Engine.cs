@@ -114,6 +114,8 @@ namespace ClawAmbilight
                 int bright = s.BrightnessSource == BrightnessSource.Display ? DisplayBrightness() * s.Brightness / 100 : s.Brightness;
                 var bytes = new byte[27];
                 for (int i = 0; i < 27; i++) bytes[i] = (byte)Math.Clamp((int)Current[i], 0, 255);
+                if (s.Mode is LightMode.Ambient or LightMode.Vibrant) AbxyCurve(bytes);
+                else bright = AbxyBrightness(bytes, bright, s.Mode == LightMode.Buttons);
                 if (lastSent == null || bright != lastBright || !bytes.AsSpan().SequenceEqual(lastSent))
                 {
                     if (_leds.Write(bytes, bright))
@@ -130,6 +132,36 @@ namespace ClawAmbilight
                 if (maxDiff >= 3f && spent < budget) Thread.Sleep(budget - spent);
             }
             _leds.Off();
+        }
+
+        // The ABXY LED is dimmer than the stick rings (tuned by eye on the Claw 8 AI+, 2026-11-06). Its light follows a
+        // curve, buttons = light^ABXY_GAMMA (0..1): a weak light gains most (4% -> 20%, x5), the gain fades toward the
+        // top (50% -> 71%, 100% stays 100%). In the screen modes the curve lifts the color (the hue stays; below
+        // ABXY_BLACK it stays dark, so the buttons still go out). In "Один цвет" / "Кнопки" the color is the user's own
+        // and already full, so the curve lifts the brightness instead (AbxyBrightness).
+        const double ABXY_GAMMA = 0.5;
+        const double ABXY_BLACK = 0.02;
+
+        static void AbxyCurve(byte[] rgb)
+        {
+            double r = rgb[24], g = rgb[25], b = rgb[26], v = Math.Max(r, Math.Max(g, b)) / 255.0;
+            if (v < ABXY_BLACK) return;
+            double scale = Math.Pow(v, ABXY_GAMMA) / v;
+            rgb[24] = (byte)Math.Clamp((int)Math.Round(r * scale), 0, 255);
+            rgb[25] = (byte)Math.Clamp((int)Math.Round(g * scale), 0, 255);
+            rgb[26] = (byte)Math.Clamp((int)Math.Round(b * scale), 0, 255);
+        }
+
+        /// <summary>"Один цвет" / "Кнопки": the buttons get brightness^ABXY_GAMMA (screen at 30% -> 55%). The controller has
+        /// one brightness for all LEDs, so it is set for the buttons, and the stick colors are dimmed back by the same
+        /// factor: the sticks keep the plain brightness. Returns the brightness to send.</summary>
+        static int AbxyBrightness(byte[] rgb, int bright, bool buttonsOnly)
+        {
+            if (bright <= 0) return bright;
+            double x = bright / 100.0, lifted = Math.Pow(x, ABXY_GAMMA);
+            if (!buttonsOnly)  // sticks back to their own level: x of the full scale, sent at "lifted"
+                for (int i = 0; i < 24; i++) rgb[i] = (byte)Math.Clamp((int)Math.Round(rgb[i] * x / lifted), 0, 255);
+            return (int)Math.Round(lifted * 100);
         }
 
         /// <summary>LEDs 4..7 = left stick, 0..3 + 8 = right stick and ABXY (Joy-Con style split).</summary>
