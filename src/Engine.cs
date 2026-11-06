@@ -141,9 +141,9 @@ namespace ClawAmbilight
         // and already full, so the curve lifts the brightness instead (AbxyBrightness).
         const double ABXY_GAMMA = 0.5;
         const double ABXY_BLACK = 0.02;
-        // the curve on the shared brightness, every mode (a dim screen: 10% -> 37%, 30% -> 60%, 50% -> 74%): 0.5 still
+        // the curve on the shared brightness, every mode (a dim screen: 10% -> 35%, 30% -> 58%, 50% -> 73%): 0.5 still
         // sank at a dim screen, 0.1 was far too bright, 0.4 lit the buttons a touch early (by eye on the Claw)
-        const double ABXY_BRIGHT_GAMMA = 0.43;
+        const double ABXY_BRIGHT_GAMMA = 0.45;
 
         static void AbxyCurve(byte[] rgb)
         {
