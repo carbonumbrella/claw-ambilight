@@ -114,8 +114,8 @@ namespace ClawAmbilight
                 int bright = s.BrightnessSource == BrightnessSource.Display ? DisplayBrightness() * s.Brightness / 100 : s.Brightness;
                 var bytes = new byte[27];
                 for (int i = 0; i < 27; i++) bytes[i] = (byte)Math.Clamp((int)Current[i], 0, 255);
-                if (s.Mode is LightMode.Ambient or LightMode.Vibrant) AbxyCurve(bytes);
-                else bright = AbxyBrightness(bytes, bright, s.Mode == LightMode.Buttons);
+                if (s.Mode is LightMode.Ambient or LightMode.Vibrant) AbxyCurve(bytes);  // the scene's light on the button color
+                bright = AbxyBrightness(bytes, bright, s.Mode == LightMode.Buttons);  // the screen's brightness, every mode
                 if (lastSent == null || bright != lastBright || !bytes.AsSpan().SequenceEqual(lastSent))
                 {
                     if (_leds.Write(bytes, bright))
@@ -141,6 +141,9 @@ namespace ClawAmbilight
         // and already full, so the curve lifts the brightness instead (AbxyBrightness).
         const double ABXY_GAMMA = 0.5;
         const double ABXY_BLACK = 0.02;
+        // the curve on the shared brightness, every mode (a dim screen: 10% -> 37%, 30% -> 60%, 50% -> 74%): 0.5 still
+        // sank at a dim screen, 0.1 was far too bright, 0.4 lit the buttons a touch early (by eye on the Claw)
+        const double ABXY_BRIGHT_GAMMA = 0.43;
 
         static void AbxyCurve(byte[] rgb)
         {
@@ -158,7 +161,7 @@ namespace ClawAmbilight
         static int AbxyBrightness(byte[] rgb, int bright, bool buttonsOnly)
         {
             if (bright <= 0) return bright;
-            double x = bright / 100.0, lifted = Math.Pow(x, ABXY_GAMMA);
+            double x = bright / 100.0, lifted = Math.Pow(x, ABXY_BRIGHT_GAMMA);
             if (!buttonsOnly)  // sticks back to their own level: x of the full scale, sent at "lifted"
                 for (int i = 0; i < 24; i++) rgb[i] = (byte)Math.Clamp((int)Math.Round(rgb[i] * x / lifted), 0, 255);
             return (int)Math.Round(lifted * 100);
